@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # Postgres Database for Backend
+  postgres:
+    image: postgres:16-alpine
+    container_name: stopro-postgres
+    environment:
+      POSTGRES_DB: stopro_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stopro-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d stopro_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Task Queue (Celery)
+  redis:
+    image: redis:7-alpine
+    container_name: stopro-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - stopro-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend Service (Java Spring Boot)
+  backend:
+    build: ./backend
+    container_name: stopro-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/stopro_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: secure_password
+      AI_SERVICE_URL: http://ai-service:8000
+    networks:
+      - stopro-network
+    restart: on-failure
+
+  # AI Microservice (Python FastAPI)
+  ai-service:
+    build: ./ai-service
+    container_name: stopro-ai
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    networks:
+      - stopro-network
+    restart: on-failure
+
+  # AI Worker (Celery)
+  ai-worker:
+    build: ./ai-service
+    container_name: stopro-ai-worker
+    command: celery -A app.tasks worker --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    networks:
+      - stopro-network
+    restart: on-failure
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: stopro-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - stopro-network
+    restart: always
+
+networks:
+  stopro-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
