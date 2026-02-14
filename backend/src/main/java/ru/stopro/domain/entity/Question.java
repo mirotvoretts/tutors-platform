@@ -232,7 +232,7 @@ public class Question extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
-    private Teacher author;
+    private User author;
 
     @Column(name = "is_verified", nullable = false)
     @Builder.Default

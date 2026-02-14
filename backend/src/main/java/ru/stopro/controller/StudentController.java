@@ -2,7 +2,6 @@ package ru.stopro.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -38,136 +37,68 @@ public class StudentController {
     private final StudentDashboardService dashboardService;
     private final UserRepository userRepository;
 
-    /**
-     * Получить полный дашборд ученика
-     */
     @Operation(summary = "Дашборд", description = "Возвращает полную информацию для дашборда ученика")
     @GetMapping("/dashboard")
     public ResponseEntity<StudentDashboardDto> getDashboard(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
         StudentDashboardDto dashboard = dashboardService.getDashboard(user.getId());
         return ResponseEntity.ok(dashboard);
     }
 
-    /**
-     * Получить активные задания
-     */
     @Operation(summary = "Активные задания", description = "Возвращает список активных тестов и ДЗ")
     @GetMapping("/assignments/active")
     public ResponseEntity<List<StudentDashboardDto.AssignmentInfo>> getActiveAssignments(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        List<StudentDashboardDto.AssignmentInfo> assignments = 
+        List<StudentDashboardDto.AssignmentInfo> assignments =
                 dashboardService.getActiveAssignments(user.getId());
         return ResponseEntity.ok(assignments);
     }
 
-    /**
-     * Получить прогресс по темам
-     */
     @Operation(summary = "Прогресс по темам", description = "Возвращает статистику по каждой теме")
     @GetMapping("/progress/topics")
     public ResponseEntity<List<StudentDashboardDto.TopicProgress>> getTopicProgress(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        List<StudentDashboardDto.TopicProgress> progress = 
+        List<StudentDashboardDto.TopicProgress> progress =
                 dashboardService.getTopicProgress(user.getId());
         return ResponseEntity.ok(progress);
     }
 
-    /**
-     * Получить активность за неделю
-     */
     @Operation(summary = "Недельная активность", description = "Возвращает статистику решённых задач по дням")
     @GetMapping("/activity/weekly")
     public ResponseEntity<List<StudentDashboardDto.DailyActivity>> getWeeklyActivity(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        List<StudentDashboardDto.DailyActivity> activity = 
+        List<StudentDashboardDto.DailyActivity> activity =
                 dashboardService.getWeeklyActivity(user.getId());
         return ResponseEntity.ok(activity);
     }
 
-    /**
-     * Получить рекомендации ИИ
-     */
     @Operation(summary = "Рекомендации", description = "Возвращает персональные рекомендации от ИИ")
     @GetMapping("/recommendations")
     public ResponseEntity<List<StudentDashboardDto.Recommendation>> getRecommendations(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        List<StudentDashboardDto.Recommendation> recommendations = 
+        List<StudentDashboardDto.Recommendation> recommendations =
                 dashboardService.getRecommendations(user.getId());
         return ResponseEntity.ok(recommendations);
     }
 
-    /**
-     * Получить достижения
-     */
     @Operation(summary = "Достижения", description = "Возвращает список достижений ученика")
     @GetMapping("/achievements")
     public ResponseEntity<List<StudentDashboardDto.Achievement>> getAchievements(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        List<StudentDashboardDto.Achievement> achievements = 
+        List<StudentDashboardDto.Achievement> achievements =
                 dashboardService.getAchievements(user.getId());
         return ResponseEntity.ok(achievements);
-    }
-
-    /**
-     * Обновить профиль ученика
-     */
-    @Operation(summary = "Обновить профиль", description = "Изменяет данные профиля ученика")
-    @PutMapping("/profile")
-    public ResponseEntity<Map<String, String>> updateProfile(
-            @Valid @RequestBody Map<String, Object> profileData,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        dashboardService.updateProfile(user.getId(), profileData);
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Профиль обновлён");
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Установить целевой балл
-     */
-    @Operation(summary = "Установить цель", description = "Устанавливает целевой балл ЕГЭ")
-    @PutMapping("/target-score")
-    public ResponseEntity<Map<String, String>> setTargetScore(
-            @RequestParam int targetScore,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        dashboardService.setTargetScore(user.getId(), targetScore);
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Целевой балл установлен: " + targetScore);
-        return ResponseEntity.ok(response);
     }
 }

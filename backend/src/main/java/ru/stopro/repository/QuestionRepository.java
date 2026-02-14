@@ -52,9 +52,9 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
     List<Question> findRandomQuestions(@Param("limit") int limit);
 
     /**
-     * Вопросы создателя (для совместимости)
+     * Вопросы создателя (автора)
      */
-    Page<Question> findByCreatedByIdAndIsDeletedFalse(UUID createdById, Pageable pageable);
+    Page<Question> findByAuthorIdAndIsDeletedFalse(UUID authorId, Pageable pageable);
 
     /**
      * Вопросы по теме (для совместимости)
@@ -72,9 +72,9 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
     Page<Question> findByIsDeletedFalse(Pageable pageable);
 
     /**
-     * Публичные вопросы (для совместимости)
+     * Публичные (активные) вопросы
      */
-    Page<Question> findByIsPublicTrueAndIsDeletedFalse(Pageable pageable);
+    Page<Question> findByIsActiveTrueAndIsDeletedFalse(Pageable pageable);
 
     /**
      * Вопросы по сложности
@@ -87,11 +87,6 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
      */
     Page<Question> findByQuestionTypeAndIsActiveTrueAndIsDeletedFalse(
             QuestionType type, Pageable pageable);
-
-    /**
-     * Вопросы автора (учителя)
-     */
-    Page<Question> findByAuthorIdAndIsDeletedFalse(UUID authorId, Pageable pageable);
 
     /**
      * Верифицированные вопросы
@@ -181,12 +176,12 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
             Pageable pageable);
 
     /**
-     * Рекомендованные вопросы на основе слабых тем
+     * Рекомендованные вопросы на основе неправильных попыток ученика
      */
     @Query("SELECT q FROM Question q WHERE q.isActive = true AND q.isDeleted = false " +
            "AND q.topic.id IN (" +
-           "  SELECT ps.topic.id FROM ProgressStats ps " +
-           "  WHERE ps.student.id = :studentId AND ps.successRate < 60" +
+           "  SELECT DISTINCT a.question.topic.id FROM Attempt a " +
+           "  WHERE a.student.id = :studentId AND a.isCorrect = false" +
            ") ORDER BY q.difficulty ASC")
     List<Question> findRecommendedForStudent(
             @Param("studentId") UUID studentId, 

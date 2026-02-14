@@ -37,7 +37,7 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", user.getRole().name());
         claims.put("userId", user.getId().toString());
-        return createToken(claims, user.getEmail(), expiration);
+        return createToken(claims, user.getUsername(), expiration);
     }
 
     /**
@@ -48,7 +48,7 @@ public class JwtService {
         claims.put("role", user.getRole().name());
         claims.put("userId", user.getId().toString());
         claims.put("type", "refresh");
-        return createToken(claims, user.getEmail(), refreshExpiration);
+        return createToken(claims, user.getUsername(), refreshExpiration);
     }
 
     /**
@@ -78,7 +78,7 @@ public class JwtService {
      */
     public Boolean isTokenValid(String token, User user) {
         final String username = extractUsername(token);
-        return (username.equals(user.getEmail()) && !isTokenExpired(token));
+        return (username.equals(user.getUsername()) && !isTokenExpired(token));
     }
 
     /**

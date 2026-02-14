@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { tasks, topics } from '@/data/mockData';
+// Temporary placeholders until tasks/topics are fetched from backend
+const tasks: any[] = [];
+const topics: any[] = [];
 import {
   Search,
   Filter,

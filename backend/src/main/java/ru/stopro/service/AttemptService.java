@@ -7,15 +7,15 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.stopro.domain.entity.Assignment;
 import ru.stopro.domain.entity.Attempt;
 import ru.stopro.domain.entity.Question;
+import ru.stopro.domain.entity.User;
 import ru.stopro.domain.enums.AttemptStatus;
 import ru.stopro.dto.attempt.AttemptDto;
 import ru.stopro.dto.attempt.AttemptResultDto;
 import ru.stopro.dto.attempt.SubmitAnswerRequest;
-import ru.stopro.domain.entity.Student;
 import ru.stopro.repository.AssignmentRepository;
 import ru.stopro.repository.AttemptRepository;
 import ru.stopro.repository.QuestionRepository;
-import ru.stopro.repository.StudentRepository;
+import ru.stopro.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -33,7 +33,7 @@ public class AttemptService {
     private final AttemptRepository attemptRepository;
     private final AssignmentRepository assignmentRepository;
     private final QuestionRepository questionRepository;
-    private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
     private final AiAnalysisService aiAnalysisService;
 
     /**
@@ -45,12 +45,12 @@ public class AttemptService {
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
         // Проверяем лимит попыток
-        long existingAttempts = attemptRepository.countByStudentIdAndAssignmentId(studentId, assignmentId);
+        long existingAttempts = attemptRepository.countByStudent_IdAndAssignment_Id(studentId, assignmentId);
         if (assignment.getMaxAttempts() != null && existingAttempts >= assignment.getMaxAttempts()) {
             throw new RuntimeException("Превышен лимит попыток");
         }
 
-        Student student = studentRepository.findById(studentId)
+        User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         
         Attempt attempt = Attempt.builder()
@@ -169,7 +169,7 @@ public class AttemptService {
      * Получить все попытки ученика
      */
     public List<AttemptDto> getStudentAttempts(UUID studentId) {
-        return attemptRepository.findByStudentIdOrderByStartedAtDesc(studentId)
+        return attemptRepository.findByStudent_IdOrderByStartedAtDesc(studentId)
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());

@@ -23,16 +23,16 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already exists");
         }
 
         var user = User.builder()
-                .email(request.getEmail())
+                .username(request.getUsername())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
+                .fullName(request.getFullName())
                 .role(request.getRole() != null ? request.getRole() : UserRole.STUDENT)
+                .dataConsentStatus(request.isDataProcessingConsent())
                 .build();
 
         userRepository.save(user);
@@ -50,12 +50,12 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        request.getUsername(),
                         request.getPassword()
                 )
         );
 
-        var user = userRepository.findByEmail(request.getEmail())
+        var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         var accessToken = jwtService.generateToken(user);
@@ -70,10 +70,10 @@ public class AuthService {
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
-        String userEmail = jwtService.extractUsername(refreshToken);
+        String username = jwtService.extractUsername(refreshToken);
 
-        if (userEmail != null) {
-            var user = userRepository.findByEmail(userEmail)
+        if (username != null) {
+            var user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             if (jwtService.isTokenValid(refreshToken, user)) {
@@ -88,43 +88,42 @@ public class AuthService {
         throw new RuntimeException("Invalid refresh token");
     }
 
-    public UserDto getCurrentUser(String email) {
-        var user = userRepository.findByEmail(email)
+    public UserDto getCurrentUser(String username) {
+        var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return mapToDto(user);
     }
-    
+
     public void logout(String authHeader) {
-        // In stateless JWT, we can't really "logout" on server without a blacklist (Redis).
-        // For now, client just drops the token.
+        // In stateless JWT, client just drops the token.
     }
 
     /**
      * Отозвать согласие на обработку ПД
      */
     @Transactional
-    public void revokeConsent(String email, String password) {
-        var user = userRepository.findByEmail(email)
+    public void revokeConsent(String username, String password) {
+        var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid password");
         }
-        
-        user.withdrawConsent();
+
+        user.setDataConsentStatus(false);
         userRepository.save(user);
     }
 
     /**
      * Экспортировать данные пользователя
      */
-    public DataExportResponse exportUserData(String email) {
-        var user = userRepository.findByEmail(email)
+    public DataExportResponse exportUserData(String username) {
+        var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         return DataExportResponse.builder()
                 .userId(user.getId().toString())
-                .email(user.getEmail())
+                .username(user.getUsername())
                 .fullName(user.getFullName())
                 .role(user.getRole() != null ? user.getRole().name() : "UNKNOWN")
                 .registeredAt(user.getCreatedAt())
@@ -135,9 +134,8 @@ public class AuthService {
     private UserDto mapToDto(User user) {
         return UserDto.builder()
                 .id(user.getId().toString())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
                 .role(user.getRole())
                 .build();
     }

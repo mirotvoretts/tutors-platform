@@ -6,7 +6,11 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useAuthStore } from '@/store/authStore';
-import { homeworks, groups, tasks } from '@/data/mockData';
+
+// Temporary placeholders until backend endpoints are consumed
+const homeworks: any[] = [];
+const groups: any[] = [];
+const tasks: any[] = [];
 import {
   Plus,
   Search,

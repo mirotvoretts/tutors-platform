@@ -60,7 +60,7 @@ public class QuestionController {
             @Valid @RequestBody QuestionCreateRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         QuestionDto question = questionService.create(user.getId(), request);
@@ -113,7 +113,7 @@ public class QuestionController {
             @AuthenticationPrincipal UserDetails userDetails,
             Pageable pageable) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Page<QuestionDto> questions = questionService.getByTeacher(user.getId(), pageable);
@@ -142,7 +142,7 @@ public class QuestionController {
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         QuestionDto question = questionService.duplicate(id, user.getId());
@@ -159,7 +159,7 @@ public class QuestionController {
             @RequestBody List<UUID> questionIds,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         List<QuestionDto> questions = questionService.importFromBank(user.getId(), questionIds);

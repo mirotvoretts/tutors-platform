@@ -58,7 +58,7 @@ public class AssignmentController {
             @Valid @RequestBody AssignmentCreateRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         AssignmentDto assignment = assignmentService.create(user.getId(), request);
@@ -75,7 +75,7 @@ public class AssignmentController {
             @Valid @RequestBody GenerateAssignmentRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         AssignmentDto assignment = assignmentService.generate(user.getId(), request);
@@ -101,7 +101,7 @@ public class AssignmentController {
     public ResponseEntity<List<AssignmentDto>> getMyAssignments(
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         List<AssignmentDto> assignments = assignmentService.getByTeacher(user.getId());

@@ -39,24 +39,18 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * Регистрация нового пользователя
-     */
     @Operation(summary = "Регистрация", description = "Создаёт нового пользователя в системе")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Успешная регистрация"),
-        @ApiResponse(responseCode = "400", description = "Email уже используется")
+        @ApiResponse(responseCode = "400", description = "Username уже используется")
     })
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        log.info("Registration attempt for email: {}", request.getEmail());
+        log.info("Registration attempt for username: {}", request.getUsername());
         AuthResponse response = authService.register(request);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Вход в систему
-     */
     @Operation(summary = "Вход", description = "Аутентификация пользователя")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Успешный вход"),
@@ -64,14 +58,11 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        log.info("Login attempt for email: {}", request.getEmail());
+        log.info("Login attempt for username: {}", request.getUsername());
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Обновление токена
-     */
     @Operation(summary = "Обновить токен", description = "Получение нового access token по refresh token")
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
@@ -79,9 +70,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Получить текущего пользователя
-     */
     @Operation(summary = "Текущий пользователь", description = "Возвращает данные авторизованного пользователя")
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
@@ -89,22 +77,15 @@ public class AuthController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * Выход из системы
-     */
     @Operation(summary = "Выход", description = "Инвалидирует текущую сессию")
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(@AuthenticationPrincipal UserDetails userDetails) {
         log.info("Logout for user: {}", userDetails.getUsername());
-        // В реальности здесь можно добавить токен в blacklist
         Map<String, String> response = new HashMap<>();
         response.put("message", "Успешный выход из системы");
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Проверка валидности токена
-     */
     @Operation(summary = "Проверить токен", description = "Проверяет, валиден ли текущий токен")
     @GetMapping("/validate")
     public ResponseEntity<Map<String, Boolean>> validateToken(@AuthenticationPrincipal UserDetails userDetails) {
@@ -113,9 +94,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Health check
-     */
     @Operation(summary = "Health Check", description = "Проверка работоспособности сервиса авторизации")
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
@@ -125,9 +103,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Отзыв согласия на обработку данных (152-ФЗ)
-     */
     @Operation(summary = "Отзыв согласия", description = "Отзывает согласие на обработку персональных данных")
     @PostMapping("/revoke-consent")
     public ResponseEntity<Map<String, String>> revokeConsent(
@@ -139,9 +114,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Экспорт персональных данных (152-ФЗ)
-     */
     @Operation(summary = "Экспорт данных", description = "Экспортирует все персональные данные пользователя")
     @GetMapping("/export-data")
     public ResponseEntity<DataExportResponse> exportData(@AuthenticationPrincipal UserDetails userDetails) {

@@ -92,9 +92,7 @@ public class QuestionDto {
 
         if (question.getAuthor() != null) {
             builder.authorId(question.getAuthor().getId());
-            if (question.getAuthor().getUser() != null) {
-                builder.authorName(question.getAuthor().getUser().getFullName());
-            }
+            builder.authorName(question.getAuthor().getFullName());
         }
 
         return builder.build();

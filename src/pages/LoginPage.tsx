@@ -3,11 +3,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { useAuthStore } from '@/store/authStore';
-import { demoTeacher, demoStudent } from '@/data/mockData';
-import { Mail, Lock, GraduationCap, BookOpen } from 'lucide-react';
+import { GraduationCap, BookOpen, Lock } from 'lucide-react';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
@@ -19,21 +18,24 @@ export function LoginPage() {
     try {
       // Real API call
       const { default: api } = await import('@/lib/axios');
-      const response = await api.post('/auth/login', { email, password });
-      
-      login(response.data.user, response.data.accessToken);
+      const response = await api.post('/auth/login', { username, password });
+      // Normalize backend user DTO to include legacy fields used across the UI
+      const backendUser = response.data.user || {};
+      const fullName = backendUser.fullName || backendUser.username || '';
+      const [firstName = '', ...rest] = fullName.split(' ').filter(Boolean);
+      const lastName = rest.join(' ');
+      const normalizedUser = {
+        ...backendUser,
+        firstName,
+        lastName,
+        email: backendUser.email || backendUser.username || '',
+      };
+
+      // store token and user
+      login(normalizedUser as any, response.data.accessToken);
     } catch (error: any) {
       console.error('Login failed', error);
       alert(error.response?.data?.message || 'Ошибка входа');
-      
-      // Fallback to demo if API fails (for development without backend running)
-      if (!error.response) {
-        if (email.includes('teacher')) {
-          login(demoTeacher, 'demo-token-teacher');
-        } else {
-          login(demoStudent, 'demo-token-student');
-        }
-      }
     } finally {
       setIsLoading(false);
     }
@@ -44,19 +46,29 @@ export function LoginPage() {
     const lastName = prompt('Фамилия:');
     if (!firstName || !lastName) return;
 
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+
     setIsLoading(true);
     try {
       const { default: api } = await import('@/lib/axios');
       const response = await api.post('/auth/register', {
-        email,
+        username,
         password,
-        firstName,
-        lastName,
+        fullName,
         role: 'TEACHER',
-        dataProcessingConsent: true,
       });
-      
-      login(response.data.user, response.data.accessToken);
+
+      const backendUser2 = response.data.user || {};
+      const fullName2 = backendUser2.fullName || backendUser2.username || '';
+      const [firstName2 = '', ...rest2] = fullName2.split(' ').filter(Boolean);
+      const lastName2 = rest2.join(' ');
+      const normalizedUser2 = {
+        ...backendUser2,
+        firstName: firstName2,
+        lastName: lastName2,
+        email: backendUser2.email || backendUser2.username || '',
+      };
+      login(normalizedUser2 as any, response.data.accessToken);
     } catch (error: any) {
       console.error('Register failed', error);
       alert(error.response?.data?.message || 'Ошибка регистрации');
@@ -68,11 +80,13 @@ export function LoginPage() {
   const handleDemoLogin = async (role: 'teacher' | 'student') => {
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 500));
-    
+    const demoTeacher = { id: 't-demo', username: 'teacher_demo', fullName: 'Учитель Демонстрационный', role: 'TEACHER' };
+    const demoStudent = { id: 's-demo', username: 'student_demo', fullName: 'Ученик Демонстрационный', role: 'STUDENT' };
+
     if (role === 'teacher') {
-      login(demoTeacher, 'demo-token-teacher');
+      login(demoTeacher as any, 'demo-token-teacher');
     } else {
-      login(demoStudent, 'demo-token-student');
+      login(demoStudent as any, 'demo-token-student');
     }
     
     setIsLoading(false);
@@ -95,12 +109,12 @@ export function LoginPage() {
         <Card padding="lg" className="shadow-xl">
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
-              label="Email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              icon={<Mail size={18} />}
+              label="Логин"
+              type="text"
+              placeholder="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              icon={<BookOpen size={18} />}
             />
             <Input
               label="Пароль"

@@ -1,7 +1,14 @@
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { studentProgress } from '@/data/mockData';
+// Temporary placeholder until we fetch real student progress from the backend
+const studentProgress = {
+  completedTasks: 0,
+  correctAnswers: 0,
+  averageTime: 0,
+  weeklyProgress: [] as any[],
+  topicStats: [] as any[],
+};
 import { Download, FileText } from 'lucide-react';
 import {
   BarChart,
@@ -42,13 +49,7 @@ export function AnalyticsPage() {
     fullMark: 100,
   }));
 
-  // Monthly progress simulation
-  const monthlyData = [
-    { month: 'Окт', tasks: 45, correct: 32 },
-    { month: 'Ноя', tasks: 78, correct: 58 },
-    { month: 'Дек', tasks: 92, correct: 71 },
-    { month: 'Янв', tasks: 142, correct: 118 },
-  ];
+  const monthlyData: { month: string; tasks: number; correct: number }[] = [];
 
   return (
     <div className="space-y-6">
@@ -90,9 +91,9 @@ export function AnalyticsPage() {
         <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white">
           <p className="text-amber-100 text-sm">Средняя успешность</p>
           <p className="text-3xl font-bold mt-1">
-            {Math.round(
-              (studentProgress.correctAnswers / studentProgress.completedTasks) * 100
-            )}
+            {studentProgress.completedTasks
+              ? Math.round((studentProgress.correctAnswers / studentProgress.completedTasks) * 100)
+              : 0}
             %
           </p>
         </Card>

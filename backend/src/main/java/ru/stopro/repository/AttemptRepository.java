@@ -28,34 +28,34 @@ public interface AttemptRepository extends JpaRepository<Attempt, UUID> {
     /**
      * Все попытки ученика
      */
-    List<Attempt> findByStudentIdAndIsDeletedFalse(UUID studentId);
+    List<Attempt> findByStudent_IdAndIsDeletedFalse(UUID studentId);
 
     /**
      * Попытки ученика с пагинацией
      */
-    Page<Attempt> findByStudentIdAndIsDeletedFalseOrderByStartedAtDesc(
+    Page<Attempt> findByStudent_IdAndIsDeletedFalseOrderByStartedAtDesc(
             UUID studentId, Pageable pageable);
 
     /**
      * Попытки ученика по заданию
      */
-    List<Attempt> findByStudentIdAndAssignmentIdAndIsDeletedFalse(
+    List<Attempt> findByStudent_IdAndAssignment_IdAndIsDeletedFalse(
             UUID studentId, UUID assignmentId);
 
     /**
      * Количество попыток ученика по заданию (для совместимости)
      */
-    long countByStudentIdAndAssignmentId(UUID studentId, UUID assignmentId);
+    long countByStudent_IdAndAssignment_Id(UUID studentId, UUID assignmentId);
 
     /**
      * Попытки ученика отсортированные (для совместимости)
      */
-    List<Attempt> findByStudentIdOrderByStartedAtDesc(UUID studentId);
+    List<Attempt> findByStudent_IdOrderByStartedAtDesc(UUID studentId);
 
     /**
      * Попытки ученика по вопросу
      */
-    List<Attempt> findByStudentIdAndQuestionIdAndIsDeletedFalse(
+    List<Attempt> findByStudent_IdAndQuestion_IdAndIsDeletedFalse(
             UUID studentId, UUID questionId);
 
     /**
@@ -87,12 +87,12 @@ public interface AttemptRepository extends JpaRepository<Attempt, UUID> {
     /**
      * Все попытки по заданию
      */
-    List<Attempt> findByAssignmentIdAndIsDeletedFalse(UUID assignmentId);
+    List<Attempt> findByAssignment_IdAndIsDeletedFalse(UUID assignmentId);
 
     /**
      * Завершённые попытки по заданию
      */
-    List<Attempt> findByAssignmentIdAndStatusAndIsDeletedFalse(
+    List<Attempt> findByAssignment_IdAndStatusAndIsDeletedFalse(
             UUID assignmentId, AttemptStatus status);
 
     /**
@@ -205,11 +205,11 @@ public interface AttemptRepository extends JpaRepository<Attempt, UUID> {
     /**
      * Результаты всех учеников по заданию
      */
-    @Query("SELECT a.student.id, a.student.user.firstName, a.student.user.lastName, " +
+    @Query("SELECT a.student.id, a.student.fullName, " +
            "MAX(a.pointsEarned), MAX(a.attemptNumber), MAX(a.answeredAt) " +
            "FROM Attempt a WHERE a.assignment.id = :assignmentId " +
            "AND a.status = 'COMPLETED' AND a.isDeleted = false " +
-           "GROUP BY a.student.id, a.student.user.firstName, a.student.user.lastName")
+           "GROUP BY a.student.id, a.student.fullName")
     List<Object[]> getAssignmentResultsByStudent(@Param("assignmentId") UUID assignmentId);
 
     /**
@@ -254,12 +254,12 @@ public interface AttemptRepository extends JpaRepository<Attempt, UUID> {
     /**
      * Количество попыток ученика по заданию
      */
-    long countByStudentIdAndAssignmentIdAndIsDeletedFalse(UUID studentId, UUID assignmentId);
+    long countByStudent_IdAndAssignment_IdAndIsDeletedFalse(UUID studentId, UUID assignmentId);
 
     /**
      * Количество правильных ответов ученика
      */
-    long countByStudentIdAndIsCorrectTrueAndIsDeletedFalse(UUID studentId);
+    long countByStudent_IdAndIsCorrectTrueAndIsDeletedFalse(UUID studentId);
 
     /**
      * Количество попыток, требующих проверки

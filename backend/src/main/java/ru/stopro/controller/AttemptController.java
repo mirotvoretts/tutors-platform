@@ -55,7 +55,7 @@ public class AttemptController {
             @PathVariable UUID assignmentId,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         AttemptDto attempt = attemptService.startAttempt(user.getId(), assignmentId);
@@ -125,7 +125,7 @@ public class AttemptController {
     public ResponseEntity<List<AttemptDto>> getMyAttempts(
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         List<AttemptDto> attempts = attemptService.getStudentAttempts(user.getId());

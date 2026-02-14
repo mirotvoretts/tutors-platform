@@ -47,18 +47,18 @@ public class Topic extends BaseEntity {
     @Builder.Default
     private List<Topic> children = new ArrayList<>();
 
-    // Задачи по теме
+    // Вопросы по теме
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL)
     @Builder.Default
-    private List<Task> tasks = new ArrayList<>();
+    private List<Question> questions = new ArrayList<>();
 
     // =========================================
     // Computed fields
     // =========================================
 
     @Transient
-    public int getTasksCount() {
-        return tasks.size();
+    public int getQuestionsCount() {
+        return questions.size();
     }
 
     @Transient

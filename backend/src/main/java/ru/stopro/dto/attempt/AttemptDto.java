@@ -97,9 +97,7 @@ public class AttemptDto {
 
         if (attempt.getStudent() != null) {
             builder.studentId(attempt.getStudent().getId());
-            if (attempt.getStudent().getUser() != null) {
-                builder.studentName(attempt.getStudent().getUser().getFullName());
-            }
+            builder.studentName(attempt.getStudent().getFullName());
         }
 
         if (attempt.getAssignment() != null) {

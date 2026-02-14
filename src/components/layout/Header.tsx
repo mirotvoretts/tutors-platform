@@ -21,7 +21,7 @@ export function Header() {
         sidebarOpen ? 'left-64' : 'left-20'
       )}
     >
-      <div className="h-full px-6 flex items-center justify-between">
+    <div className="h-full px-6 flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center gap-4">
           <button
@@ -32,9 +32,7 @@ export function Header() {
           </button>
           <div>
             <p className="text-sm text-slate-500">{getGreeting()},</p>
-            <p className="font-semibold text-slate-900">
-              {user?.firstName} {user?.lastName}
-            </p>
+            <p className="font-semibold text-slate-900">{user?.fullName}</p>
           </div>
         </div>
 
@@ -61,8 +59,11 @@ export function Header() {
 
           {/* Avatar */}
           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold">
-            {user?.firstName?.[0]}
-            {user?.lastName?.[0]}
+            {(() => {
+              const name = user?.fullName || '';
+              if (!name) return '';
+              return name.split(' ').map(s => s[0] || '').slice(0,2).join('');
+            })()}
           </div>
         </div>
       </div>

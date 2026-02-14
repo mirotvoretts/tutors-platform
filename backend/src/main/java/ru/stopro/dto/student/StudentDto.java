@@ -4,8 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.stopro.domain.entity.Student;
-import ru.stopro.domain.enums.StudentLevel;
+import ru.stopro.domain.entity.User;
 
 import java.util.UUID;
 
@@ -15,26 +14,22 @@ import java.util.UUID;
 @AllArgsConstructor
 public class StudentDto {
     private UUID id;
-    private String email;
-    private String firstName;
-    private String lastName;
-    private Integer grade;
-    private Integer targetScore;
-    private StudentLevel level;
+    private String username;
+    private String fullName;
+    /** ID группы (если ученик в группе) */
     private UUID groupId;
-    private String groupName;
 
-    public static StudentDto fromEntity(Student student) {
+    public static StudentDto fromEntity(User user, UUID groupId) {
         return StudentDto.builder()
-                .id(student.getId())
-                .email(student.getUser().getEmail())
-                .firstName(student.getUser().getFirstName())
-                .lastName(student.getUser().getLastName())
-                .grade(student.getGrade())
-                .targetScore(student.getTargetScore())
-                .level(student.getLevel())
-                .groupId(student.getGroup() != null ? student.getGroup().getId() : null)
-                .groupName(student.getGroup() != null ? student.getGroup().getName() : null)
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .groupId(groupId)
                 .build();
+    }
+
+    /** Без группы (для списков, где группа неизвестна) */
+    public static StudentDto fromEntity(User user) {
+        return fromEntity(user, null);
     }
 }

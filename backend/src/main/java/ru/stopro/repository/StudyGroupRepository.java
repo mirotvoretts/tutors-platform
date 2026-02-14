@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 import ru.stopro.domain.entity.StudyGroup;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -12,14 +13,13 @@ import java.util.UUID;
  */
 @Repository
 public interface StudyGroupRepository extends JpaRepository<StudyGroup, UUID> {
-    
-    /**
-     * Поиск групп учителя
-     */
+
+    /** Все группы конкретного учителя */
     List<StudyGroup> findByTeacherId(UUID teacherId);
-    
-    /**
-     * Поиск активных групп учителя
-     */
-    List<StudyGroup> findByTeacherIdAndIsActiveTrue(UUID teacherId);
+
+    /** Поиск группы по коду-приглашению */
+    Optional<StudyGroup> findByInviteCode(String inviteCode);
+
+    /** Проверка существования кода-приглашения */
+    boolean existsByInviteCode(String inviteCode);
 }

@@ -2,18 +2,17 @@ package ru.stopro.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import ru.stopro.domain.enums.StudentLevel;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Учебная группа для объединения учеников
+ * Учебная группа. Учитель создаёт группу и добавляет в неё учеников.
  */
 @Entity
 @Table(name = "study_groups", indexes = {
     @Index(name = "idx_group_teacher", columnList = "teacher_id"),
-    @Index(name = "idx_group_level", columnList = "level")
+    @Index(name = "idx_group_invite_code", columnList = "invite_code", unique = true)
 })
 @Getter
 @Setter
@@ -22,39 +21,28 @@ import java.util.List;
 @Builder
 public class StudyGroup extends BaseEntity {
 
+    /** Название группы */
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "level", nullable = false, length = 20)
-    @Builder.Default
-    private StudentLevel level = StudentLevel.INTERMEDIATE;
-
-    @Column(name = "max_students")
-    @Builder.Default
-    private Integer maxStudents = 20;
-
-    @Column(name = "is_active", nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
-
-    // Учитель группы
+    /** Учитель — владелец группы */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
-    private Teacher teacher;
+    private User teacher;
 
-    // Ученики в группе
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<Student> students = new ArrayList<>();
+    /** Уникальный код-приглашение для входа в группу */
+    @Column(name = "invite_code", nullable = false, unique = true, length = 10)
+    private String inviteCode;
 
-    // Домашние задания группы
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
+    /** Ученики, входящие в группу (ManyToMany) */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "group_students",
+        joinColumns = @JoinColumn(name = "group_id"),
+        inverseJoinColumns = @JoinColumn(name = "student_id")
+    )
     @Builder.Default
-    private List<Homework> homeworks = new ArrayList<>();
+    private List<User> students = new ArrayList<>();
 
     // =========================================
     // Computed fields
@@ -62,22 +50,6 @@ public class StudyGroup extends BaseEntity {
 
     @Transient
     public int getStudentsCount() {
-        return students.size();
-    }
-
-    @Transient
-    public boolean isFull() {
-        return students.size() >= maxStudents;
-    }
-
-    @Transient
-    public double getAverageSuccessRate() {
-        if (students.isEmpty()) {
-            return 0.0;
-        }
-        return students.stream()
-                .mapToDouble(Student::getSuccessRate)
-                .average()
-                .orElse(0.0);
+        return students != null ? students.size() : 0;
     }
 }

@@ -28,6 +28,9 @@ RUN mvn clean package -DskipTests -B
 # ===========================================
 FROM eclipse-temurin:21-jre-alpine
 
+# wget для HEALTHCHECK
+RUN apk add --no-cache wget
+
 WORKDIR /app
 
 # Создаем непривилегированного пользователя

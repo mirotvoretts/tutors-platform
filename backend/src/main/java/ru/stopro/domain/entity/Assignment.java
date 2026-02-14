@@ -68,7 +68,7 @@ public class Assignment extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
-    private Teacher teacher;
+    private User teacher;
 
     /**
      * ID создателя (для совместимости с сервисами)
@@ -430,7 +430,7 @@ public class Assignment extends BaseEntity {
     /**
      * Проверяет, может ли ученик начать новую попытку
      */
-    public boolean canStartNewAttempt(Student student) {
+    public boolean canStartNewAttempt(User student) {
         if (!isAvailable()) {
             return false;
         }
@@ -504,7 +504,7 @@ public class Assignment extends BaseEntity {
     /**
      * Создаёт копию задания (для шаблонов)
      */
-    public Assignment createCopy(Teacher newTeacher, StudyGroup newGroup, LocalDateTime newDeadline) {
+    public Assignment createCopy(User newTeacher, StudyGroup newGroup, LocalDateTime newDeadline) {
         return Assignment.builder()
             .title(this.title)
             .description(this.description)

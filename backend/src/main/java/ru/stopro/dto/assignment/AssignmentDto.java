@@ -122,9 +122,7 @@ public class AssignmentDto {
 
         if (assignment.getTeacher() != null) {
             builder.teacherId(assignment.getTeacher().getId());
-            if (assignment.getTeacher().getUser() != null) {
-                builder.teacherName(assignment.getTeacher().getUser().getFullName());
-            }
+            builder.teacherName(assignment.getTeacher().getFullName());
         }
 
         if (assignment.getGroup() != null) {

@@ -9,7 +9,17 @@ import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
-import { studentProgress, homeworks, aiRecommendations } from '@/data/mockData';
+
+// Temporary empty defaults until these endpoints are implemented
+const studentProgress = {
+  completedTasks: 0,
+  correctAnswers: 0,
+  averageTime: 0,
+  weeklyProgress: [] as any[],
+  topicStats: [] as any[],
+};
+const homeworks: any[] = [];
+const aiRecommendations: any[] = [];
 import { 
   BookOpen, 
   Target, 
@@ -28,7 +38,7 @@ export function StudentDashboard() {
   const { user } = useAuthStore();
   const { setActiveTab } = useAppStore();
   const { completedTasks, correctAnswers, averageTime, weeklyProgress, topicStats } = studentProgress;
-  const successRate = Math.round((correctAnswers / completedTasks) * 100);
+  const successRate = completedTasks ? Math.round((correctAnswers / completedTasks) * 100) : 0;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -42,8 +52,7 @@ export function StudentDashboard() {
   const today = new Date();
   const daysUntilExam = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Streak calculation (mock)
-  const currentStreak = 7;
+  const currentStreak = 0;
 
   // Predicted score based on current success rate
   const predictedScore = Math.min(100, Math.round(successRate * 1.1));
@@ -65,7 +74,7 @@ export function StudentDashboard() {
                 <span className="text-emerald-100 text-sm font-medium">СТОПРО • Профильная математика</span>
               </div>
               <h1 className="text-3xl font-bold mb-2">
-                {getGreeting()}, {user?.firstName}! 🎯
+                {getGreeting()}, {user?.fullName}! 🎯
               </h1>
               <p className="text-emerald-100 text-lg mb-4">
                 Продолжай в том же духе! Ты уже решил {completedTasks} задач.

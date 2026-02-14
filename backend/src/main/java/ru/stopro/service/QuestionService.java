@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.stopro.domain.entity.Question;
 import ru.stopro.domain.entity.Topic;
-import ru.stopro.repository.TeacherRepository;
+import ru.stopro.repository.UserRepository;
 import ru.stopro.dto.question.QuestionCreateRequest;
 import ru.stopro.dto.question.QuestionDto;
 import ru.stopro.dto.question.QuestionFilterRequest;
@@ -28,7 +28,7 @@ public class QuestionService {
 
     private final QuestionRepository questionRepository;
     private final TopicRepository topicRepository;
-    private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
 
     // Паттерн для проверки парности $ в LaTeX
     private static final Pattern LATEX_PATTERN = Pattern.compile("\\$[^$]+\\$|\\$\\$[^$]+\\$\\$");
@@ -61,7 +61,7 @@ public class QuestionService {
                 .hint(request.getHint())
                 .tags(request.getTags() != null ? String.join(",", request.getTags()) : null)
                 .isActive(request.isPublic())
-                .author(teacherRepository.findById(teacherId).orElse(null))
+                .author(userRepository.findById(teacherId).orElse(null))
                 .isVerified(false)
                 .timesAttempted(0)
                 .timesCorrect(0)
@@ -139,7 +139,7 @@ public class QuestionService {
      * Получить задачи учителя
      */
     public Page<QuestionDto> getByTeacher(UUID teacherId, Pageable pageable) {
-        return questionRepository.findByCreatedByIdAndIsDeletedFalse(teacherId, pageable)
+        return questionRepository.findByAuthorIdAndIsDeletedFalse(teacherId, pageable)
                 .map(this::mapToDto);
     }
 
@@ -181,7 +181,7 @@ public class QuestionService {
                 .hint(original.getHint())
                 .tags(original.getTags())
                 .isActive(false) // Копия приватная
-                .author(teacherRepository.findById(teacherId).orElse(null))
+                .author(userRepository.findById(teacherId).orElse(null))
                 .isVerified(false)
                 .timesAttempted(0)
                 .timesCorrect(0)
@@ -220,7 +220,7 @@ public class QuestionService {
      * Получить публичный банк задач
      */
     public Page<QuestionDto> getPublicBank(Pageable pageable) {
-        return questionRepository.findByIsPublicTrueAndIsDeletedFalse(pageable)
+        return questionRepository.findByIsActiveTrueAndIsDeletedFalse(pageable)
                 .map(this::mapToDto);
     }
 

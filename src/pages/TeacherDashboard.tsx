@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +8,19 @@ import { Select } from '@/components/ui/Select';
 import { HomeworkList } from '@/components/dashboard/HomeworkList';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
-import { teacherStats, homeworks, groups } from '@/data/mockData';
+
+// Temporary defaults until API-backed endpoints provide data
+const teacherStatsDefault = {
+  totalStudents: 0,
+  activeHomeworks: 0,
+  averageScore: 0,
+  completionRate: 0,
+  weeklyActivity: [] as any[],
+  topPerformers: [] as any[],
+  needsAttention: [] as any[],
+};
+
+const homeworks: any[] = [];
 import {
   Users,
   ClipboardList,
@@ -24,6 +36,8 @@ import {
   BookOpen,
   X,
   Mail,
+  Pencil,
+  Trash,
 } from 'lucide-react';
 import {
   BarChart,
@@ -41,6 +55,14 @@ export function TeacherDashboard() {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showCreateHomeworkModal, setShowCreateHomeworkModal] = useState(false);
   const [newStudent, setNewStudent] = useState({ email: '', firstName: '', lastName: '', groupId: '' });
+  const [editGroupModal, setEditGroupModal] = useState<{ open: boolean; group: any | null }>({ open: false, group: null });
+  const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
+  const [groupsState, setGroupsState] = useState<any[]>([]);
+  const [teacherStats, setTeacherStats] = useState(() => ({ ...teacherStatsDefault }));
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+  const [studentsForGroup, setStudentsForGroup] = useState<any[]>([]);
+  const [showCredentialsModal, setShowCredentialsModal] = useState<{ open: boolean; creds: any[] }>({ open: false, creds: [] });
+  const [addingStudent, setAddingStudent] = useState({ fullName: '', desiredScore: '' });
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -49,7 +71,7 @@ export function TeacherDashboard() {
     return 'Добрый вечер';
   };
 
-  const getMotivationalText = () => {
+  const motivationalText = useMemo(() => {
     const texts = [
       'Сегодня отличный день для новых достижений! 🚀',
       'Ваши ученики ждут новых знаний! 📚',
@@ -57,7 +79,7 @@ export function TeacherDashboard() {
       'Вместе мы достигнем высоких результатов! ⭐',
     ];
     return texts[Math.floor(Math.random() * texts.length)];
-  };
+  }, []);
 
   const handleAddStudent = async () => {
     try {
@@ -73,6 +95,14 @@ export function TeacherDashboard() {
       alert(`Ученик ${newStudent.firstName} добавлен!`);
       setShowAddStudentModal(false);
       setNewStudent({ email: '', firstName: '', lastName: '', groupId: '' });
+      // refresh students count for dashboard
+      try {
+        const sres = await api.get('/teacher/students');
+        const students: any[] = sres.data || [];
+        setTeacherStats(prev => ({ ...prev, totalStudents: students.length }));
+      } catch (err) {
+        console.warn('Failed to refresh students after add', err);
+      }
     } catch (error: any) {
       console.error('Failed to add student', error);
       alert(error.response?.data?.message || 'Ошибка при добавлении ученика');
@@ -82,6 +112,136 @@ export function TeacherDashboard() {
   const handleCreateHomework = () => {
     setShowCreateHomeworkModal(false);
     setActiveTab('homework');
+  };
+
+  // Edit group handler
+  const handleEditGroup = (group: any) => {
+    setEditGroupModal({ open: true, group });
+  };
+  // Delete group handler
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!window.confirm('Удалить группу?')) return;
+    try {
+      const { default: api } = await import('@/lib/axios');
+      await api.delete(`/groups/${groupId}`);
+      setGroupsState(prev => prev.filter(g => g.id !== groupId));
+      if (selectedGroup?.id === groupId) setSelectedGroup(null);
+      alert('Группа удалена');
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Ошибка при удалении группы');
+    }
+  };
+
+  // load groups on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { default: api } = await import('@/lib/axios');
+        const res = await api.get('/teacher/groups');
+        if (mounted) setGroupsState(res.data || []);
+      } catch (err) {
+        console.error('Failed to load groups', err);
+      }
+    })();
+    // also fetch students count for dashboard stats
+    (async () => {
+      try {
+        const { default: api } = await import('@/lib/axios');
+        const sres = await api.get('/teacher/students');
+        const students: any[] = sres.data || [];
+        if (mounted) setTeacherStats(prev => ({ ...prev, totalStudents: students.length }));
+      } catch (err) {
+        console.error('Failed to load students for stats', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const openGroupDetails = async (group: any) => {
+    setSelectedGroup(group);
+    // fetch students for teacher and filter by groupId
+    try {
+      const { default: api } = await import('@/lib/axios');
+      const res = await api.get('/teacher/students');
+      const students: any[] = res.data || [];
+      setStudentsForGroup(students.filter(s => s.groupId === group.id));
+    } catch (err) {
+      console.error('Failed to load students', err);
+      setStudentsForGroup([]);
+    }
+  };
+
+  const submitEditGroup = async (groupId: string, name: string) => {
+    try {
+      const { default: api } = await import('@/lib/axios');
+      const res = await api.put(`/groups/${groupId}`, { name });
+      const updated = res.data;
+      setGroupsState(prev => prev.map(g => (g.id === updated.id ? updated : g)));
+      setEditGroupModal({ open: false, group: null });
+      alert('Группа обновлена');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Ошибка при обновлении группы');
+    }
+  };
+
+  const addStudentToGroup = async (groupId: string, fullName: string, desiredScore?: string) => {
+    try {
+      const { default: api } = await import('@/lib/axios');
+      // use bulk endpoint to get credentials
+      const res = await api.post(`/groups/${groupId}/students`, { studentNames: [fullName] });
+      const creds = res.data?.credentials || [];
+      // refresh students list
+      const sres = await api.get('/teacher/students');
+      const students: any[] = sres.data || [];
+      setStudentsForGroup(students.filter(s => s.groupId === groupId));
+      setShowCredentialsModal({ open: true, creds });
+      setAddingStudent({ fullName: '', desiredScore: '' });
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Ошибка при добавлении ученика');
+    }
+  };
+
+  const deleteStudent = async (studentId: string) => {
+    if (!window.confirm('Удалить ученика?')) return;
+    try {
+      const { default: api } = await import('@/lib/axios');
+      await api.delete(`/teacher/students/${studentId}`);
+      // refresh current group's students
+      if (selectedGroup) {
+        const res = await api.get('/teacher/students');
+        const students: any[] = res.data || [];
+        setStudentsForGroup(students.filter(s => s.groupId === selectedGroup.id));
+      }
+      // refresh dashboard count
+      try {
+        const sres = await api.get('/teacher/students');
+        const students: any[] = sres.data || [];
+        setTeacherStats(prev => ({ ...prev, totalStudents: students.length }));
+      } catch (err) {
+        console.warn('Failed to refresh students after delete', err);
+      }
+      alert('Ученик удалён');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Ошибка при удалении ученика');
+    }
+  };
+
+  const editStudent = async (studentId: string) => {
+    const newName = window.prompt('Новое ФИО ученика');
+    if (!newName) return;
+    try {
+      const { default: api } = await import('@/lib/axios');
+      await api.put(`/teacher/students/${studentId}`, { fullName: newName });
+      if (selectedGroup) {
+        const res = await api.get('/teacher/students');
+        const students: any[] = res.data || [];
+        setStudentsForGroup(students.filter(s => s.groupId === selectedGroup.id));
+      }
+      alert('Данные ученика обновлены');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Ошибка при обновлении ученика');
+    }
   };
 
   return (
@@ -100,10 +260,10 @@ export function TeacherDashboard() {
               <span className="text-indigo-200 text-sm font-medium">СТОПРО • Панель учителя</span>
             </div>
             <h1 className="text-3xl font-bold mb-2">
-              {getGreeting()}, {user?.firstName}! 👋
+              {getGreeting()}, {user?.fullName}! 👋
             </h1>
             <p className="text-indigo-100 text-lg mb-4">
-              {getMotivationalText()}
+              {motivationalText}
             </p>
             
             <div className="flex flex-wrap gap-4 mt-6">
@@ -284,10 +444,10 @@ export function TeacherDashboard() {
               }
             />
             <div className="space-y-3">
-              {groups.slice(0, 3).map((group) => (
+              {groupsState.slice(0, 3).map((group) => (
                 <div
                   key={group.id}
-                  onClick={() => setActiveTab('students')}
+                  onClick={() => openGroupDetails(group)}
                   className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <div>
@@ -296,25 +456,110 @@ export function TeacherDashboard() {
                       {group.studentsCount} учеников
                     </p>
                   </div>
-                  <Badge
-                    variant={
-                      group.level === 'ADVANCED'
-                        ? 'success'
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={
+                        group.level === 'ADVANCED'
+                          ? 'success'
+                          : group.level === 'INTERMEDIATE'
+                          ? 'info'
+                          : 'default'
+                      }
+                    >
+                      {group.level === 'ADVANCED'
+                        ? 'Продвинутый'
                         : group.level === 'INTERMEDIATE'
-                        ? 'info'
-                        : 'default'
-                    }
-                  >
-                    {group.level === 'ADVANCED'
-                      ? 'Продвинутый'
-                      : group.level === 'INTERMEDIATE'
-                      ? 'Средний'
-                      : 'Начальный'}
-                  </Badge>
+                        ? 'Средний'
+                        : 'Начальный'}
+                    </Badge>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditGroup(group);
+                      }}
+                      className="p-2 hover:bg-slate-200 rounded-full"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGroup(group.id);
+                      }}
+                      className="p-2 hover:bg-red-100 rounded-full"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </Card>
+
+          {/* Group details modal (students list + add student) */}
+          {selectedGroup && (
+            <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-6">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-auto">
+                <div className="p-6 border-b flex items-center justify-between">
+                  <h3 className="text-lg font-bold">Группа: {selectedGroup.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedGroup(null)}>Закрыть</Button>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Ученики</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="text-sm text-slate-500">
+                            <th className="py-2">ФИО</th>
+                            <th className="py-2">Логин</th>
+                            <th className="py-2">Группа</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {studentsForGroup.map(s => (
+                            <tr key={s.id} className="border-t">
+                              <td className="py-2">{s.fullName}</td>
+                              <td className="py-2">{s.username}</td>
+                              <td className="py-2">{selectedGroup.name}</td>
+                              <td className="py-2">
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => editStudent(s.id)} className="p-1 rounded hover:bg-slate-100">Изменить</button>
+                                  <button onClick={() => deleteStudent(s.id)} className="p-1 rounded hover:bg-red-100">Удалить</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {studentsForGroup.length === 0 && (
+                            <tr><td colSpan={3} className="py-4 text-sm text-slate-500">Пока нет учеников в этой группе.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Добавить ученика</h4>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      const name = (e.target as any).fullName.value;
+                      const desired = (e.target as any).desiredScore.value;
+                      await addStudentToGroup(selectedGroup.id, name, desired);
+                    }} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                      <Input name="fullName" label="ФИО" required />
+                      <Input name="desiredScore" label="Желаемый балл (опционально)" />
+                      <div className="flex gap-2">
+                        <Button type="submit">Добавить</Button>
+                        <Button variant="outline" onClick={() => setSelectedGroup(null)} type="button">Отмена</Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Top performers */}
           <Card>
@@ -412,7 +657,7 @@ export function TeacherDashboard() {
                 label="Группа"
                 options={[
                   { value: '', label: 'Выберите группу' },
-                  ...groups.map(g => ({ value: g.id, label: g.name }))
+                  ...groupsState.map(g => ({ value: g.id, label: g.name }))
                 ]}
                 value={newStudent.groupId}
                 onChange={(e) => setNewStudent(prev => ({ ...prev, groupId: e.target.value }))}
@@ -450,6 +695,67 @@ export function TeacherDashboard() {
                 Перейти
                 <ArrowRight size={16} className="ml-1" />
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Group Modal */}
+      {editGroupModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Редактировать группу</h2>
+              <button onClick={() => setEditGroupModal({ open: false, group: null })} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
+            <form className="p-6 space-y-4" onSubmit={async (e) => {
+              e.preventDefault();
+              const name = (e.target as any).groupName.value;
+              await submitEditGroup(editGroupModal.group.id, name);
+            }}>
+              <Input
+                label="Название группы"
+                name="groupName"
+                defaultValue={editGroupModal.group?.name}
+                required
+              />
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setEditGroupModal({ open: false, group: null })} type="button">
+                  Отмена
+                </Button>
+                <Button className="flex-1" type="submit">
+                  Сохранить
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials modal (shows generated username/password after bulk add) */}
+      {showCredentialsModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Учётные данные</h3>
+              <button onClick={() => setShowCredentialsModal({ open: false, creds: [] })} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {showCredentialsModal.creds.map((c, idx) => (
+                <div key={idx} className="p-3 border rounded-lg flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{c.fullName}</div>
+                    <div className="text-sm text-slate-500">{c.username} / {c.password}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { navigator.clipboard.writeText(`${c.username}:${c.password}`); }} className="px-3 py-1 bg-slate-100 rounded">Копировать</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
